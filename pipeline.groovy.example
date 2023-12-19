@@ -1,0 +1,46 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: maven
+            image: maven:3.9.5-eclipse-temurin-17-alpine
+            command:
+            - cat
+            resources:
+              limits:
+                memory: "2Gi"
+              requests:
+                memory: "2Gi"
+            tty: true
+        '''
+    }
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        git url: 'https://github.com/jenkinsci/junit-plugin.git', branch: 'master'
+      }
+    }
+
+    stage('Compile') {
+      steps {
+        container('maven') {
+          sh 'mvn -Dmaven.repo.local=${WORKSPACE}/.m2 compile test-compile'
+        }
+      }
+    }
+
+    stage('Test') {
+      steps {
+        container('maven') {
+          sh 'mvn -Dmaven.repo.local=${WORKSPACE}/.m2 test'
+        }
+      }
+    }
+  }
+}
